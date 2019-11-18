@@ -1,0 +1,42 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java_version: ['1.8', '11']
+        gradle_version: ['5.6.4', '6.0']
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Set up JDK ${{ matrix.java_version }}
+      uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.java_version }}
+
+    - name: Cache Gradle wrapper
+      uses: actions/cache@v1
+      with:
+        path: ~/.gradle/wrapper/dists/gradle-5.6.4-bin/
+        key: wrapper-5.6.4
+
+    - name: Cache testing Gradle wrapper
+      uses: actions/cache@v1
+      if: matrix.gradle_version != '5.6.4'
+      with:
+        path: ~/.gradle/wrapper/dists/gradle-${{ matrix.gradle_version }}-bin/
+        key: wrapper-${{ matrix.gradle_version }}
+
+
+    - name: Cache dependencies
+      uses: actions/cache@v1
+      with:
+        path: ~/.gradle/caches/modules-2/
+        key: deps-${{ matrix.java_version }}-${{ matrix.gradle_version }}-${{ hashFiles('**/build.gradle.kts') }}
+
+    - name: Build with Gradle
+      run: ./gradlew --scan build -Ptest.gradle-version=${{ matrix.gradle_version }}
